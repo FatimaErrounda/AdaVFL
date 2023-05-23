@@ -11,12 +11,14 @@ class arguments():
     self.input_length = 6
     self.output_length = 1
     self.trainRatioBegin = 0
-    self.trainRatioEnd = 0.25
-    self.testRatioBegin = 0.9
+    self.trainRatioEnd = 0.6
+    self.testRatioBegin = 0.8
     self.testRatioEnd = 1.0
-    self.predictionSampleRatio = 0.15
+    self.predictionSampleRatio = 0.5
     self.trainAttackerBegin = 0.5
     self.trainAttackerEnd = 0.7
+    self.trainMemberRatio = 0.5
+    self.testMemberRatio = 0.7
     self.data_capture_interval = 1800000
     self.feature_sampling="Increasing" #"Random","Increasing", "Decreasing"
 
@@ -25,13 +27,21 @@ class arguments():
     self.global_model_loss = "MAE"
     self.local_model = 'GRU'
     self.global_model = 'GNN'
-    self.epochs = 6
+    self.epochs = 16
     self.pretrainepochs = 6
     self.attacker_epochs = 6
     self.test_normalization = True
     self.train_normalization = True
-    # self.optimizer = 'adam' #'sgd', 'adam'
 
+    #membership privacy attack
+    self.observedEpochs = [6,8,10,12]
+    self.cluster_threshold = 0.5
+    self.training_attacker_begin = 0.20
+    self.training_attacker_end = 0.45
+    self.test_member_begin = 0.2
+    self.test_member_end = 0.25
+    self.test_non_member_begin = 0.3
+    self.test_non_member_end = 0.4
 
     #feature privacy
     self.featureMode = "Uniform" # "InvContribution" "LinContribution" "Uniform" "None"
@@ -45,12 +55,13 @@ class arguments():
     self.delta_0 = 0.00001
     self.clipping_threshold = 4
     self.sigma_0 = 4.
-    self.PrivacyMode = "Uniform" #"None", "Concentrated", "Uniform", "Adaptive", "Validation", "Increase"
+    self.PrivacyMode = "None" #"None", "Concentrated", "Uniform", "Adaptive", "Validation", "Increase"
 
     #adaptive
     self.AdaptiveError = "Training" #"Accuracy" "Training"
     self.alpha = 1
     self.epoch_period = 5
+    self.gamma_min = 0.06
 
     #DP-AGD
     self.obj_clip = 1.0

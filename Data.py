@@ -213,7 +213,6 @@ class GlobalSampledDataset:
     axis = grid[0].split("X")
     x_axis = int(axis[0])
     y_axis = int(axis[1])
-
     for data, timestamps in zip(grid_dataset.sequence, grid_dataset.sequence_timestamps):
       seq,label = data
       seq_timestamp, label_timestamp = timestamps  
@@ -291,6 +290,44 @@ def MakeAttackTimes(AttackTrainingDataset, args):
   args.beginAttackTimestamp = AttackTrainingDataset.start_timestamp
   args.endAttackTimestamp = AttackTrainingDataset.end_timestamp
 
+def MakeMembershipAttackTimes(AttackerTrainData,AttackerMemberTestData,AttackerNonMemberTestData, args):
+  seq_timestamp, label_timestamps = AttackerMemberTestData[0].sequence_timestamps[0]
+  args.beginTestMemberTimestamp = seq_timestamp[0].item()
+  seq_timestamp, label_timestamps = AttackerMemberTestData[0].sequence_timestamps[len(AttackerMemberTestData[0].sequence_timestamps)-1]
+  args.endTestMemberTimestamp = seq_timestamp[0].item()
+
+  seq_timestamp, label_timestamps = AttackerNonMemberTestData[0].sequence_timestamps[0]
+  args.beginTestNonMemberTimestamp = seq_timestamp[0].item()
+  seq_timestamp, label_timestamps = AttackerNonMemberTestData[0].sequence_timestamps[len(AttackerNonMemberTestData[0].sequence_timestamps)-1]
+  args.endTestNonMemberTimestamp = seq_timestamp[0].item()
+
+  seq_timestamp, label_timestamps = AttackerTrainData[0].sequence_timestamps[0]
+  args.beginTrainMembershipTimestamp = seq_timestamp[0].item()
+  seq_timestamp, label_timestamps = AttackerTrainData[0].sequence_timestamps[len(AttackerTrainData[0].sequence_timestamps)-1]
+  args.endTrainMembershipTimestamp = seq_timestamp[0].item()
+
+def CheckLocalMembershipData(args):
+  if args.training_attacker_begin > args.trainRatioEnd:
+    print("The training data for the membership attack must contain some members")
+  
+  if args.training_attacker_end < args.trainRatioEnd:
+    print("The training data for the membership attack must also contain some non members")
+
+  if args.test_member_begin > args.trainRatioEnd:
+    print("The test data for the membership attack must contain some members")  
+
+  if args.test_non_member_begin < args.trainRatioEnd:
+    print("The data points that are considered non members must no pertain to targeted model's training data")
+
+  if args.test_non_member_begin > args.trainRatioEnd:
+    print("The data points that are considered non members must no pertain to targeted model's training data")
+
+def build_member_test_data(member_data, non_member_data):
+  AttackerTestData = []
+  AttackerTestData.append(member_data)
+  AttackerTestData.append(non_member_data)
+  return AttackerTestData
+  
 # def CheckLocalTestData(LocalTestData, args):
 #   print("CheckLocalTestData")
 #   beginningTime = args.beginTrainingTimestamp
@@ -596,395 +633,8 @@ def initialize_ratio_contribution(args,feature_contribution_metric):
             y = k-x*args.y_axis  
             organization_contribution_distribution[x][y] = args.attacker_organization_id  
             number_features_counter+=1
-    
-  # organization_id = args.organization_id
-#   if args.dataset == "bikeNYC":
-#     ## Bike 
-#     # 10% == 12 cells
-#     if ratio == 10:
-#       organization_id= args.attacker_organization_id
-#       ratio_contribution_metrics[0][0:12] = 0.1
-#       organization_contribution_distribution[0][0:12] = organization_id
-#       organization_id= args.victim_organization_id
-#       ratio_contribution_metrics[0][12:] = 0.9
-#       organization_contribution_distribution [0][12:] = organization_id
-#       for i in range(1,args.x_axis):
-#         ratio_contribution_metrics[i][:] = 0.9
-#         organization_contribution_distribution[i][:] = organization_id
-    
-#     if ratio == 20:
-#       # 20% == 25 cells
-#       organization_id= args.attacker_organization_id
-#       ratio_contribution_metrics[0][:] = 0.2
-#       organization_contribution_distribution[0][:] = organization_id
-#       ratio_contribution_metrics[1][0:9] = 0.2
-#       organization_contribution_distribution[1][0:9] = organization_id
-#       organization_id= args.victim_organization_id
-#       ratio_contribution_metrics[1][9:] = 0.8
-#       organization_contribution_distribution[1][9:] = organization_id
-#       for i in range(2,args.x_axis):
-#         ratio_contribution_metrics[i][:] = 0.8
-#         organization_contribution_distribution[i][:] = organization_id
-
-#     ## 30% == 38 cells
-#     if ratio == 30:
-#       organization_id= args.attacker_organization_id
-#       ratio_contribution_metrics[0][:] = 0.3
-#       organization_contribution_distribution[0][:] = organization_id
-#       ratio_contribution_metrics[1][:] = 0.3
-#       organization_contribution_distribution[1][:] = organization_id
-#       ratio_contribution_metrics[2][0:6] = 0.3
-#       organization_contribution_distribution[2][0:6] = organization_id
-#       organization_id= args.victim_organization_id
-#       ratio_contribution_metrics[2][6:] = 0.7
-#       organization_contribution_distribution[2][6:] = organization_id
-#       for i in range(3,args.x_axis):
-#         ratio_contribution_metrics[i][:] = 0.7
-#         organization_contribution_distribution[i][:] = organization_id
-
-#     ## 40% == 51 cells
-#     if ratio == 40:
-#       organization_id= args.attacker_organization_id
-#       ratio_contribution_metrics[0][:] = 0.4
-#       organization_contribution_distribution[0][:] = organization_id
-#       ratio_contribution_metrics[1][:] = 0.4
-#       organization_contribution_distribution[1][:] = organization_id
-#       ratio_contribution_metrics[2][:] = 0.4
-#       organization_contribution_distribution[2][:] = organization_id
-#       ratio_contribution_metrics[3][0:3] = 0.4
-#       organization_contribution_distribution[3][0:3] = organization_id
-#       organization_id= args.victim_organization_id
-#       ratio_contribution_metrics[3][3:] = 0.6
-#       organization_contribution_distribution[3][3:] = organization_id
-#       for i in range(4,args.x_axis):
-#         ratio_contribution_metrics[i][:] = 0.6
-#         organization_contribution_distribution[i][:] = organization_id
-
-#     ## 50% == 64 cells
-#     if ratio == 50:
-#       midway = args.x_axis//2
-#       organization_id= args.attacker_organization_id
-#       for i in range(0,midway):
-#         ratio_contribution_metrics[i][:] = 0.5
-#         organization_contribution_distribution[i][:] = organization_id
-#       organization_id= args.victim_organization_id
-#       for i in range(midway,args.x_axis):
-#         ratio_contribution_metrics[i][:] = 0.5
-#         organization_contribution_distribution[i][:] = organization_id
-
-#     # 60% == 76 cells
-#     if ratio == 60:
-#       midway = args.x_axis//2
-#       organization_id= args.attacker_organization_id
-#       for i in range(0,midway):
-#         ratio_contribution_metrics[i][:] = 0.6
-#         organization_contribution_distribution[i][:] = organization_id
-#       ratio_contribution_metrics[4][0:12] = 0.6
-#       organization_contribution_distribution[4][0:12] = organization_id
-#       organization_id= args.victim_organization_id
-#       ratio_contribution_metrics[4][12:] = 0.4
-#       organization_contribution_distribution[4][12:] = organization_id
-#       for i in range(midway+1,args.x_axis):
-#         ratio_contribution_metrics[i][:] = 0.4
-#         organization_contribution_distribution[i][:] = organization_id
-
-#     # 70% == 90 cells
-#     if ratio == 70:
-#       midway = args.x_axis//2
-#       organization_id= args.attacker_organization_id
-#       for i in range(0,midway+1):
-#         ratio_contribution_metrics[i][:] = 0.7
-#         organization_contribution_distribution[i][:] = organization_id
-#       ratio_contribution_metrics[5][0:10] = 0.7
-#       organization_contribution_distribution[5][0:10] = organization_id
-#       organization_id= args.victim_organization_id
-#       ratio_contribution_metrics[5][10:] = 0.3
-#       organization_contribution_distribution[5][10:] = organization_id
-#       for i in range(midway+2,args.x_axis):
-#         ratio_contribution_metrics[i][:] = 0.3
-#         organization_contribution_distribution[i][:] = organization_id
-
-#     # 80% == 102 cells
-#     if ratio == 80:
-#       midway = 5
-#       organization_id= args.attacker_organization_id
-#       for i in range(0,midway):
-#         ratio_contribution_metrics[i][:] = 0.8
-#         organization_contribution_distribution[i][:] = organization_id
-#       ratio_contribution_metrics[midway][0:] = 0.8
-#       organization_contribution_distribution[midway][0:] = organization_id
-#       ratio_contribution_metrics[6][0:6] = 0.8
-#       organization_contribution_distribution[6][0:6] = organization_id
-#       organization_id= args.victim_organization_id
-#       ratio_contribution_metrics[6][6:] = 0.2
-#       organization_contribution_distribution[6][6:] = organization_id
-#       ratio_contribution_metrics[7][:] = 0.2
-#       organization_contribution_distribution[7][:] = organization_id
-
-#     # 90% == 115 cells
-#     if ratio == 90:
-#       organization_id= args.attacker_organization_id
-#       for i in range(0,args.x_axis):
-#         ratio_contribution_metrics[i][:] = 0.9
-#         organization_contribution_distribution[i][:] = organization_id
-#       organization_id= args.victim_organization_id
-#       ratio_contribution_metrics[7][-13:] = 0.1
-#       organization_contribution_distribution[7][-13:] = organization_id
-
-#   ##############################################################
-#   ##############################################################
-#   ## Yelp 
-#   if args.dataset == "Yelp":
-#     # 10% == 6 cells
-#     if ratio == 10:
-#       organization_id= args.attacker_organization_id
-#       ratio_contribution_metrics[0][0:6] = 0.1
-#       organization_contribution_distribution[0][0:6] = organization_id
-#       organization_id= args.victim_organization_id
-#       ratio_contribution_metrics[0][6:] = 0.9
-#       organization_contribution_distribution[0][6:] = organization_id
-#       for i in range(1,args.x_axis):
-#         ratio_contribution_metrics[i][:] = 0.9
-#         organization_contribution_distribution[i][:] = organization_id
-
-#     ## 20% == 12 cells
-#     if ratio == 20:
-#       organization_id= args.attacker_organization_id
-#       ratio_contribution_metrics[0][:] = 0.2
-#       organization_contribution_distribution[0][:] = organization_id
-#       ratio_contribution_metrics[1][0:4] = 0.2
-#       organization_contribution_distribution[1][0:4] = organization_id
-#       organization_id= args.victim_organization_id
-#       ratio_contribution_metrics[1][4:] = 0.8
-#       organization_contribution_distribution[1][4:] = organization_id
-#       for i in range(2,args.x_axis):
-#         ratio_contribution_metrics[i][:] = 0.8
-#         organization_contribution_distribution[i][:] = organization_id
-
-#     ## 30% == 19 cells
-#     if ratio == 30:
-#       organization_id= args.attacker_organization_id
-#       ratio_contribution_metrics[0][:] = 0.3
-#       organization_contribution_distribution[0][:] = organization_id
-#       ratio_contribution_metrics[1][:] = 0.3
-#       organization_contribution_distribution[1][:] = organization_id
-#       ratio_contribution_metrics[2][0:3] = 0.3
-#       organization_contribution_distribution[2][0:3] = organization_id
-#       organization_id= args.victim_organization_id
-#       ratio_contribution_metrics[2][3:] = 0.7
-#       organization_contribution_distribution[2][3:] = organization_id
-#       for i in range(3,args.x_axis):
-#         ratio_contribution_metrics[i][:] = 0.7
-#         organization_contribution_distribution[i][:] = organization_id
-
-#     ## 40% == 26 cells
-#     if ratio == 40:
-#       organization_id= args.attacker_organization_id
-#       ratio_contribution_metrics[0][:] = 0.4
-#       organization_contribution_distribution[0][:] = organization_id
-#       ratio_contribution_metrics[1][:] = 0.4
-#       organization_contribution_distribution[1][:] = organization_id
-#       ratio_contribution_metrics[2][:] = 0.4
-#       organization_contribution_distribution[2][:] = organization_id
-#       ratio_contribution_metrics[3][0:2] = 0.4
-#       organization_contribution_distribution[3][0:2] = organization_id
-#       organization_id= args.victim_organization_id
-#       ratio_contribution_metrics[3][2:] = 0.6
-#       organization_contribution_distribution[3][2:] = organization_id
-#       for i in range(4,args.x_axis):
-#         ratio_contribution_metrics[i][:] = 0.6
-#         organization_contribution_distribution[i][:] = organization_id
-
-#     ## 50% == 32 cells
-#     if ratio == 50:
-#       midway = args.x_axis//2
-#       organization_id= args.attacker_organization_id
-#       for i in range(0,midway):
-#         ratio_contribution_metrics[i][:] = 0.5
-#         organization_contribution_distribution[i][:] = organization_id
-#       organization_id= args.victim_organization_id
-#       for i in range(midway,args.x_axis):
-#         ratio_contribution_metrics[i][:] = 0.5
-#         organization_contribution_distribution[i][:] = organization_id
-
-#     # 60% == 38 cells
-#     if ratio == 60:
-#       midway = args.x_axis//2
-#       organization_id= args.attacker_organization_id
-#       for i in range(0,midway):
-#         ratio_contribution_metrics[i][:] = 0.6
-#         organization_contribution_distribution[i][:] = organization_id
-#       ratio_contribution_metrics[4][0:6] = 0.6
-#       organization_contribution_distribution[4][0:6] = organization_id
-#       organization_id= args.victim_organization_id
-#       ratio_contribution_metrics[4][6:] = 0.4
-#       organization_contribution_distribution[4][6:] = organization_id
-#       for i in range(midway+1,args.x_axis):
-#         ratio_contribution_metrics[i][:] = 0.4
-#         organization_contribution_distribution[i][:] = organization_id
-
-#     # 70% == 45 cells
-#     if ratio == 70:
-#       midway = args.x_axis//2
-#       organization_id= args.attacker_organization_id
-#       for i in range(0,midway+1):
-#         ratio_contribution_metrics[i][:] = 0.7
-#         organization_contribution_distribution[i][:] = organization_id
-#       ratio_contribution_metrics[5][0:5] = 0.7
-#       organization_contribution_distribution[5][0:5] = organization_id
-#       organization_id= args.victim_organization_id
-#       ratio_contribution_metrics[5][5:] = 0.3
-#       organization_contribution_distribution[5][5:] = organization_id
-#       for i in range(midway+2,args.x_axis):
-#         ratio_contribution_metrics[i][:] = 0.3
-#         organization_contribution_distribution[i][:] = organization_id
-
-#     # 80% == 51 cells
-#     if ratio == 80:
-#       midway = 5
-#       organization_id= args.attacker_organization_id
-#       for i in range(0,midway):
-#         ratio_contribution_metrics[i][:] = 0.8
-#         organization_contribution_distribution[i][:] = organization_id
-#       ratio_contribution_metrics[midway][0:] = 0.8
-#       organization_contribution_distribution[midway][0:] = organization_id
-#       ratio_contribution_metrics[6][0:3] = 0.8
-#       organization_contribution_distribution[6][0:3] = organization_id
-#       organization_id= args.victim_organization_id
-#       ratio_contribution_metrics[6][3:] = 0.2
-#       organization_contribution_distribution[6][3:] = organization_id
-#       ratio_contribution_metrics[7][:] = 0.2
-#       organization_contribution_distribution[7][:] = organization_id
-
-#     # 90% == 58 cells
-#     if ratio == 90:
-#       organization_id= args.attacker_organization_id
-#       for i in range(0,args.x_axis):
-#         ratio_contribution_metrics[i][:] = 0.9
-#         organization_contribution_distribution[i][:] = organization_id
-#       organization_id= args.victim_organization_id
-#       ratio_contribution_metrics[7][-6:] = 0.1
-#       organization_contribution_distribution[7][-6:] = organization_id
 
   return organization_contribution_distribution
-
-# def train_attacker(attacker,timestamp,AttackerTrainData,globalModel,adj,organization_contribution_distribution, args):
-#   flat_organization_contribution_distribution = np.ndarray.flatten(organization_contribution_distribution)
-#   losses = []
-#   loss = 0.
-#   global_model_loss = 0.
-#   acc = {}
-#   acc["MAE"] = torch.zeros(1,args.input_length,args.x_axis,args.y_axis)
-#   acc["MSE"] = torch.zeros(1,args.input_length,args.x_axis,args.y_axis)
-#   acc["RMSE"] = torch.zeros(1,args.input_length,args.x_axis,args.y_axis)
-#   acc["AE"] = torch.zeros(1,args.input_length,args.x_axis,args.y_axis)
-#   acc["WMAPE"] = torch.zeros(1,args.input_length,args.x_axis,args.y_axis)
-
-#   found_timestamp = False
-#   index_timestamp = -1
-#   n = len(AttackerTrainData.sequence_timestamps)
-#   first = AttackerTrainData.sequence_timestamps[0]
-#   last = AttackerTrainData.sequence_timestamps[n-1]
-
-#   index_timestamp = (timestamp-first)/(last-first)*n
-#   index_timestamp = int(index_timestamp)
-
-#   endtimestamp = timestamp+args.trainingInterval
-#   index_end = (endtimestamp-first)/(last-first)*n
-#   index_end = int(index_end)
-
-#   if index_timestamp == -1:
-#     print("a problem finding the timestamp in the training data for dataset index ",AttackerTrainData.x_axis,",", AttackerTrainData.y_axis)
-  
-  
-#   input_Sequence = AttackerTrainData.sequence[index_timestamp:index_end]
-#   batch_size = len(input_Sequence) 
-
-
-#   attacker.optimizer.zero_grad()
-#   hidden_cell= attacker.init_hidden()
-# #   Indexes = [i for i in range(batch_size-1)]
-# #   np.random.shuffle(Indexes)
-# #   for i in Indexes:
-#   for seq, labels in input_Sequence:
-#     # attacker.optimizer.zero_grad()
-# #     seq = input_Sequence[i][0]
-# #     labels = input_Sequence[i][1] 
-
-#     seq = seq.to(args.device_name)
-#     labels = labels.to(args.device_name)
-#     hidden_cell = hidden_cell.data
-    
-#     #initialize randomly the guessed targeted feature
-#     rand_seq = modify_input_attacker(seq,organization_contribution_distribution, args)
-    
-#     # check that the change is correct
-# #     comparing_1 = torch.eq(rand_seq,seq)
-
-#     #make the attacker model guess the input
-#     rand_seq = rand_seq.to(args.device_name)
-#     guessed_features, hidden_cell = attacker.forward_single(rand_seq, hidden_cell, True)
-# #     print("guessed_features",guessed_features.requires_grad)
-#     #build the targeted model's input using the adversary best guess
-#     modified_input = build_attacker_input(args, seq,guessed_features,flat_organization_contribution_distribution)
-
-#     #check that the output is correct
-# #     comparing_2 = torch.eq(rand_seq,modified_input)
-# #     comparing_3 = torch.eq(comparing_1,comparing_2)
-#     acc["MAE"] += abs(seq - modified_input)
-#     acc["MSE"] += (seq - modified_input) ** 2
-#     acc["AE"] += seq - modified_input
-#     acc["WMAPE"] += abs(seq)
-
-#     #compare the output of the targeted model's predictions
-#     modified_input = modified_input.to(args.device_name)
-#     with torch.no_grad():
-#       attackerprediction = globalModel.predict(modified_input,adj).unsqueeze(0)
-# #       global_model_loss += torch.mean((globalModel.predict(seq,adj) - labels)**2)
-#       attackerprediction = attackerprediction.to(args.device_name)
-
-#     #backprop the attacker's model
-#     loss = attacker.backward_single(guessed_features,attackerprediction, labels)
-# #     loss = attacker.backward_single(guessed_features,seq, flat_organization_contribution_distribution,args)
-    
-#     guessed_features.grad = None
-#     attackerprediction.grad = None
-    
-# #     print("loss after backward",loss)
-#     # attacker.optimizer.step()
-#     losses.append(loss)
-    
-#   attacker.optimizer.step()
-#   acc_WMAPE = float((acc["MAE"]/acc["WMAPE"]).nanmean())
-  
-# #   acc["MAE"] /= n
-# #   acc["MSE"] /= n
-# #   acc["AE"] /= n
-  
-#   acc["MAE"] /= batch_size
-#   acc["MSE"] /= batch_size
-#   acc["AE"] /= batch_size
-    
-
-#   acc_MAE = float(acc["MAE"].mean())
-#   acc_MSE = float(acc["MSE"].mean())
-#   acc_AE = float(acc["AE"].mean())
-#   acc_RMSE = math.sqrt(acc_MSE)
-
-#   acc_floats = {}
-#   acc_floats["MAE"] = acc_MAE
-#   acc_floats["MSE"] = acc_MSE
-#   acc_floats["RMSE"] = acc_RMSE
-#   acc_floats["AE"] = acc_AE
-#   acc_floats["WMAPE"] = acc_WMAPE
-# #   print("the global model loss is ",global_model_loss/batch_size)  
-# #   print(global_model_loss/batch_size)  
-#   if len(losses) == 0:
-#     print("attacker timestamp training",timestamp)
-#     print("attacker index_timestamp",index_timestamp)
-#     print("attacker index_end",index_end)
-#     print("batch_size",batch_size)      
-#   return acc_floats, sum(losses)/len(losses)
 
 def train_attacker(attacker,timestamp,AttackerTrainData,globalModel,adj,organization_contribution_distribution, args):
   flat_organization_contribution_distribution = np.ndarray.flatten(organization_contribution_distribution)
